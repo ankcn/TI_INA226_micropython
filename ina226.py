@@ -113,6 +113,13 @@ CONFIG_MODE_SVOLT_CONTINUOUS = const(0x0005)
 CONFIG_MODE_BVOLT_CONTINUOUS = const(0x0006)
 CONFIG_MODE_SANDBVOLT_CONTINUOUS = const(0x0007)
 
+#
+_DEF_CONFIG = const(CONFIG_CONST_BITS |
+    CONFIG_AVGMODE_512SAMPLES |
+    CONFIG_VBUSCT_588us |
+    CONFIG_VSHUNTCT_588us |
+    CONFIG_MODE_SANDBVOLT_CONTINUOUS)
+
 
 def _to_signed(num):
     if num > 0x7FFF:
@@ -181,50 +188,20 @@ class INA226:
         raw_power = _to_signed(self._read_register(_REG_POWER))
         # Calculated power is derived by multiplying raw power value with the power LSB
         return raw_power * self._power_lsb
-# Example calculations for calibration register value, current LSB and power LSB
-# 1. Assuming a 100milliOhm resistor as shunt
-# RSHUNT = 0.1
-#
-# 2. Determine current_lsb
-# Assuming a maximum expected current of 3.6A
-# current_lsb = MaxExpected_I / (2^15)
-# current_lsb = 3.6A / (2^15)
-# current_lsb = 0.0001098632813
-# -> Rounding to "nicer" numbers:
-# current_lsb = 0.0001
-#
-# 3. Setting the power LSB
-# power_lsb = 25 * current_lsb
-# power_lsb = 25 * 0.0001
-# power_lsb = 0.0025
-#
-# 4. Determine calibration register value
-# cal_value = 0.00512 / (RSHUNT * current_lsb)
-# cal_value = 0.00512 / (0.1 * 0.0001)
-# cal_value = 512
-#
-#
-    def set_calibration(self):  # pylint: disable=invalid-name
-        """Configures to INA226 to be able to measure up to 36V and 2A
-            of current. Counter overflow occurs at 3.2A.
-           ..note :: These calculations assume a 0.1 shunt ohm resistor"""
-        self._current_lsb = .0001
-        self._cal_value = 512
-        self._power_lsb = .0025
-        self._write_register(_REG_CALIBRATION, self._cal_value)
 
-        config = (CONFIG_CONST_BITS |
-                  CONFIG_AVGMODE_512SAMPLES |
-                  CONFIG_VBUSCT_588us |
-                  CONFIG_VSHUNTCT_588us |
-                  CONFIG_MODE_SANDBVOLT_CONTINUOUS)
-
-        self._write_register(_REG_CONFIG, config)
-
-    def set_calibration_custom(self, calValue=512, config=0x4127):
-    # Set the configuration register externally by using the hex value for the config register
-    # Value can be calculated with spreadsheet
-    # Calibration value needs to be calculated seperately and passed as parameter too
-        self._cal_value = calValue
+    def calibrate(self, max_current=0.75, v_shunt=75, config=_DEF_CONFIG):
+        """
+        Set up the INA226 by writing calibration and configuration values
+        to appropriate registers. The calibration value is calculated based
+        on the maximum expected current and the corresponding voltage drop
+        across the shunt resistor.
+        Args:
+            max_current (float): Maximum expected current (A)
+            v_shunt (float): Nominal shunt drop voltage at maximum current (mV)
+            config (int): Configuration register value
+        """
+        self._cal_value = int(5.12 * (1 << 15) / v_shunt)
+        self._current_lsb = max_current / (1 << 15)
+        self._power_lsb = 25 * self._current_lsb
         self._write_register(_REG_CALIBRATION, self._cal_value)
         self._write_register(_REG_CONFIG, config)
