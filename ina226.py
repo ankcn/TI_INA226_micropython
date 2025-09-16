@@ -113,7 +113,7 @@ CONFIG_MODE_SVOLT_CONTINUOUS = const(0x0005)
 CONFIG_MODE_BVOLT_CONTINUOUS = const(0x0006)
 CONFIG_MODE_SANDBVOLT_CONTINUOUS = const(0x0007)
 
-#
+# Default configuration register value
 _DEF_CONFIG = const(CONFIG_CONST_BITS |
     CONFIG_AVGMODE_512SAMPLES |
     CONFIG_VBUSCT_588us |
@@ -140,8 +140,7 @@ class INA226:
         self._power_lsb = 0
 
         # Set chip to known config values to start
-        self._cal_value = 4096
-        self.set_calibration()
+        self.calibrate()
 
     def _write_register(self, reg, value):
         self.buf[0] = (value >> 8) & 0xFF
@@ -155,19 +154,17 @@ class INA226:
 
     @property
     def shunt_voltage(self):
-        """The shunt voltage (between V+ and V-) in Volts (so +-.327V)"""
+        """The shunt voltage (between V+ and V-) in mVolts (so +-81.92mV)"""
         value = _to_signed(self._read_register(_REG_SHUNTVOLTAGE))
-        # The least signficant bit is 10uV which is 0.00001 volts
-        return value * 0.00001
+        # The least signficant bit is 2.5uV or 0.0025 mV
+        return value * 0.0025
 
     @property
     def bus_voltage(self):
         """The bus voltage (between V- and GND) in Volts"""
-        raw_voltage = self._read_register(_REG_BUSVOLTAGE)
-        # voltage in millVolt is register content multiplied with 1.25mV/bit
-        voltage_mv = raw_voltage * 1.25
+        # Voltage in mV is register content multiplied with 1.25mV/bit
         # Return Volts instead of milliVolts
-        return voltage_mv * 0.001
+        return self._read_register(_REG_BUSVOLTAGE) * 1.25 / 1000
 
     @property
     def current(self):
