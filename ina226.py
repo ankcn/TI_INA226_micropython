@@ -2,6 +2,7 @@
 #
 # Copyright (c) 2017 Dean Miller for Adafruit Industries
 # Copyright (c) 2020 Christian Becker
+# Copyright (c) 2025 Andrey Tarasov
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,24 +21,24 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
+
 """
 `ina226`
 ====================================================
 
-micropython driver for the INA226 current sensor.
+Micropython driver for the INA226 current sensor.
 
-* Author(s): Christian Becker
+* Author(s): Andrey Tarasov
 
 """
-# taken from https://github.com/robert-hh/INA219 , modified for the INA226 devices by
-# Christian Becker
-# June 2020
+
+# Forked from https://github.com/elschopi/TI_INA226_micropython
+
 
 from micropython import const
-# from adafruit_bus_device.i2c_device import I2CDevice
 
-__version__ = "0.0.0-auto.0"
-__repo__ = "https://github.com/elschopi/TI_INA226_micropython.git"
+__version__ = "0.0.1"
+__repo__ = "https://github.com/ankcn/TI_INA226_micropython.git"
 
 
 # Register definitions
@@ -69,7 +70,7 @@ CONFIG_RESET = const(0x8000)
 # Constant bits - don't change
 CONFIG_CONST_BITS = const(0x4000)
 
-# Averaging mode
+# Averaging modes
 CONFIG_AVGMODE_MASK = const(0x0e00)
 CONFIG_AVGMODE_1SAMPLES = const(0x0000)
 CONFIG_AVGMODE_4SAMPLES = const(0x0200)
@@ -80,7 +81,7 @@ CONFIG_AVGMODE_256SAMPLES = const(0x0a00)
 CONFIG_AVGMODE_512SAMPLES = const(0x0c00)
 CONFIG_AVGMODE_1024SAMPLES = const(0x0e00)
 
-# Bus voltage conversion time
+# Bus voltage conversion times
 CONFIG_VBUSCT_MASK = const(0x01c0)
 CONFIG_VBUSCT_140us = const(0x0000)
 CONFIG_VBUSCT_204us = const(0x0040)
@@ -91,7 +92,7 @@ CONFIG_VBUSCT_2116us = const(0x0140)
 CONFIG_VBUSCT_4156us = const(0x0180)
 CONFIG_VBUSCT_8244us = const(0x01c0)
 
-# Shunt voltage conversion time
+# Shunt voltage conversion times
 CONFIG_VSHUNTCT_MASK = const(0x0038)
 CONFIG_VSHUNTCT_140us = const(0x0000)
 CONFIG_VSHUNTCT_204us = const(0x0008)
@@ -102,7 +103,7 @@ CONFIG_VSHUNTCT_2116us = const(0x0028)
 CONFIG_VSHUNTCT_4156us = const(0x0030)
 CONFIG_VSHUNTCT_8244us = const(0x0038)
 
-# Operating mode
+# Operating modes
 CONFIG_MODE_MASK = const(0x0007)  # Operating Mode Mask
 CONFIG_MODE_POWERDOWN = const(0x0000)
 CONFIG_MODE_SVOLT_TRIGGERED = const(0x0001)
@@ -154,14 +155,14 @@ class INA226:
 
     @property
     def shunt_voltage(self):
-        """The shunt voltage (between V+ and V-) in mVolts (so +-81.92mV)"""
+        """The shunt voltage (between IN+ and IN-) in mVolts (so +-81.92mV)"""
         value = _to_signed(self._read_register(_REG_SHUNTVOLTAGE))
         # The least signficant bit is 2.5uV or 0.0025 mV
         return value * 0.0025
 
     @property
     def bus_voltage(self):
-        """The bus voltage (between V- and GND) in Volts"""
+        """The bus voltage (between Vbus and GND) in Volts"""
         # Voltage in mV is register content multiplied with 1.25mV/bit
         # Return Volts instead of milliVolts
         return self._read_register(_REG_BUSVOLTAGE) * 1.25 / 1000
