@@ -37,7 +37,7 @@ Micropython driver for the INA226 current sensor.
 
 from micropython import const
 
-__version__ = "0.0.1"
+__version__ = "1.1.0"
 __repo__ = "https://github.com/ankcn/TI_INA226_micropython.git"
 
 
