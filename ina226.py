@@ -187,17 +187,21 @@ class INA226:
         # Calculated power is derived by multiplying raw power value with the power LSB
         return raw_power * self._power_lsb
 
-    def calibrate(self, max_current=0.75, v_shunt=75, config=_DEF_CONFIG):
+    def calibrate(self, config=_DEF_CONFIG, max_current=None, v_shunt=75.0, r_shunt=100.0):
         """
         Set up the INA226 by writing calibration and configuration values
         to appropriate registers. The calibration value is calculated based
         on the maximum expected current and the corresponding voltage drop
-        across the shunt resistor.
+        across the shunt resistor. Instead of the maximum current,
+        you can specify the shunt resistance.
         Args:
+            config (int): Configuration register value
             max_current (float): Maximum expected current (A)
             v_shunt (float): Nominal shunt drop voltage at maximum current (mV)
-            config (int): Configuration register value
+            r_shunt (float): Nominal shunt resistance (mOhm)
         """
+        if max_current == None:
+            max_current = v_shunt / r_shunt
         self._cal_value = int(5.12 * (1 << 15) / v_shunt)
         self._current_lsb = max_current / (1 << 15)
         self._power_lsb = 25 * self._current_lsb
